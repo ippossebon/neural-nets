@@ -24,10 +24,7 @@ def main():
         neurons_per_layer=neurons_per_layer
     )
 
-    print_multi_array.pprint(network.theta)
-    print_multi_array.pprint(network.activation)
-
-    network.backpropagateData()
+    network.costFunction()
 
 if __name__ == '__main__':
     main()
