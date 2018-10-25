@@ -71,7 +71,7 @@ class NeuralNetwork(object):
     def setTrainingData(self):
         self.training_data = self.dataset
 
-    def costFunction(self):
+    def backpropagation(self):
         ex1 = Instance(attributes=[0.13], classification=[0.9])
         ex2 = Instance(attributes=[0.42], classification=[0.23])
         training_data = [ex1, ex2]
@@ -81,12 +81,48 @@ class NeuralNetwork(object):
         f_theta = []
         J_vector = []
 
+        deltas = []
+        for i in range(len(self.neurons_per_layer)-1):
+            deltas.append(np.zeros(shape=(self.theta[i].shape)))
+
+        last_layer_index = len(self.neurons_per_layer) - 1
+
         J = 0 # acumula o erro total da rede
 
         for i in range(len(training_data)):
+            # Propaga a instância e obtém as saídas preditas pela rede
             f_theta.append(training_data[i].classification)
-            y.append(self.backpropagation(training_data[i]))
-            j_i = self.calculateError(f_theta[i], y[i])
+            y.append(self.forwardPropagation(training_data[i]))
+
+
+            # Calcula delta da camada de saída
+            j_i = y[i] - f_theta[i]
+            deltas.insert(last_layer_index, j_i)
+
+            # Calcula delta das camadas ocultas
+            for k in range(last_layer_index-1, 0, -1):
+                #  [θ(l=k)]T 𝛿(l=k+1) .* a(l=k) .* (1-a(l=k))
+                # import ipdb; ipdb.set_trace()
+                theta_copy = list(self.theta[k])
+                theta_matrix = np.delete(theta_copy, 0, axis=1) # remove o peso do neurônio de bias
+                theta_matrix = np.matrix(theta_matrix)
+
+                theta_transp = theta_matrix.transpose()
+                delta_matrix = np.matrix(deltas[k+1])
+                first_term = np.multiply(theta_transp, delta_matrix)
+
+                activation_copy = np.array(self.activation[k])
+                activation_matrix = np.delete(activation_copy, 0, axis=0) # remove a ativação do neurônio de bias
+                activation_matrix = np.matrix(activation_matrix)
+                second_term = np.dot(first_term, activation_matrix)
+
+                aux = 1 - activation_matrix
+                third_term = np.dot(second_term, aux)
+
+                # remove o neurônio de bias
+                delta_k = np.delete(third_term, 0, 0)
+                deltas.insert(k, delta_k)
+
 
             print('Saida predita para o exemplo {0} = {1}'.format(i, y[i]))
             print('Saida esperada para o exemplo {0} = {1}'.format(i, f_theta[i]))
@@ -106,7 +142,7 @@ class NeuralNetwork(object):
 
 
 
-    def backpropagation(self, instance):
+    def forwardPropagation(self, instance):
         print('')
         # z é um vetor de tamanho num_layers
         z = [0 for i in range(self.num_layers)]
@@ -145,6 +181,7 @@ class NeuralNetwork(object):
 
     def g(self, x):
         return float(1/(1 + math.exp(-x)))
+
 
     def calculateError(self, f_theta, y):
         # calcula o erro obtido a partir das saídas obtidas para um exemplo i

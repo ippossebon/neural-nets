@@ -24,7 +24,7 @@ def main():
         neurons_per_layer=neurons_per_layer
     )
 
-    network.costFunction()
+    network.backpropagation()
 
 if __name__ == '__main__':
     main()
