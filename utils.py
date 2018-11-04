@@ -2,13 +2,14 @@ from instance import Instance
 
 class FileUtils(object):
 
-    def __init__(self, filename):
-        self.filename = filename
+    def __init__(self, dataset_file, config_file):
+        self.dataset_file = dataset_file
+        self.config_file = config_file
 
     def getDataset(self):
         instances = []
 
-        with open(self.filename) as f:
+        with open(self.dataset_file) as f:
             data = f.readlines()
 
             for line in data:
@@ -26,3 +27,10 @@ class FileUtils(object):
                 instances.append(inst)
 
         return instances
+
+    def getConfigParams(self):
+        with open(self.config_file) as f:
+            data = f.readlines()
+
+            for line in data:
+                pass

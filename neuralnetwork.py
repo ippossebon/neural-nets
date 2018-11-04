@@ -7,9 +7,11 @@ from utils import FileUtils
 
 class NeuralNetwork(object):
 
-    def __init__(self, initial_weights_file, neurons_per_layer, dataset_file):
-        self.dataset_file = dataset_file
+    def __init__(self, initial_weights_file, neurons_per_layer, dataset_file, config_file):
+        self.fileUtils = FileUtils(dataset_file=dataset_file, config_file=config_file)
+
         self.initial_weights_file = initial_weights_file
+
         self.output     = []
         self.prediction = []
         self.dataset = None
@@ -18,8 +20,11 @@ class NeuralNetwork(object):
         self.num_input = None
         self.num_hidden = None
         self.num_output = None
+        self.reg_factor = 0.25
 
         self.training_data = None
+
+        self.gradients_for_all_instances = []
 
         self.theta = []
         self.initTheta()
@@ -65,13 +70,20 @@ class NeuralNetwork(object):
 
 
     def setDataset(self):
-        fileUtils = FileUtils(self.dataset_file)
-        self.dataset = fileUtils.getDataset()
+        self.dataset = self.fileUtils.getDataset()
+
+    def getConfigParams(self):
+        self.dataset = self.fileUtils.getConfigParams()
 
     def setTrainingData(self):
         self.training_data = self.dataset
 
     def backpropagation(self):
+        # Inicializa vetor de gradientes
+        regularized_gradients = []
+        for g in range(len(self.neurons_per_layer) - 1):
+            regularized_gradients.append(np.zeros(shape=(self.neurons_per_layer[g+1], self.neurons_per_layer[g]+1)))
+
         ex1 = Instance(attributes=[0.13], classification=[0.9])
         ex2 = Instance(attributes=[0.42], classification=[0.23])
         training_data = [ex1, ex2]
@@ -90,6 +102,11 @@ class NeuralNetwork(object):
         J = 0 # acumula o erro total da rede
 
         for i in range(len(training_data)):
+            # Inicializa vetor de gradientes
+            gradients = []
+            for g in range(len(self.neurons_per_layer) - 1):
+                gradients.append(np.zeros(shape=(self.neurons_per_layer[g+1], self.neurons_per_layer[g]+1)))
+
             # Propaga a instância e obtém as saídas preditas pela rede
             f_theta.append(training_data[i].classification)
             y.append(self.forwardPropagation(training_data[i]))
@@ -102,34 +119,71 @@ class NeuralNetwork(object):
             # Calcula delta das camadas ocultas
             for k in range(last_layer_index-1, 0, -1):
                 #  [θ(l=k)]T 𝛿(l=k+1) .* a(l=k) .* (1-a(l=k))
-                # import ipdb; ipdb.set_trace()
                 theta_copy = list(self.theta[k])
-                theta_matrix = np.delete(theta_copy, 0, axis=1) # remove o peso do neurônio de bias
-                theta_matrix = np.matrix(theta_matrix)
+                # theta_matrix = np.delete(theta_copy, 0, axis=1) # remove o peso do neurônio de bias
+                theta_matrix = np.matrix(theta_copy)
 
                 theta_transp = theta_matrix.transpose()
                 delta_matrix = np.matrix(deltas[k+1])
-                first_term = np.multiply(theta_transp, delta_matrix)
+                first_term = theta_transp * delta_matrix
 
                 activation_copy = np.array(self.activation[k])
-                activation_matrix = np.delete(activation_copy, 0, axis=0) # remove a ativação do neurônio de bias
-                activation_matrix = np.matrix(activation_matrix)
-                second_term = np.dot(first_term, activation_matrix)
+                # activation_matrix = np.delete(activation_copy, 0, axis=0) # remove a ativação do neurônio de bias
+                activation_matrix = np.matrix(activation_copy)
+                second_term = np.multiply(first_term, activation_matrix)
 
                 aux = 1 - activation_matrix
-                third_term = np.dot(second_term, aux)
+                third_term = np.multiply(second_term, aux)
 
                 # remove o neurônio de bias
-                delta_k = np.delete(third_term, 0, 0)
-                deltas.insert(k, delta_k)
+                # delta_k = np.delete(third_term, 0, 0)
+                delta_k = third_term.diagonal() # gambiarra: alguma dimensão ficou errada, mas pega os valores certos
+                deltas[k] = delta_k
 
+
+            # Atualiza os gradientes dos pesos com base no exemplo atual
+            # TODO: CALCULAR O DA ULTIMA CAMADA FORA DO FOR
+            for k in range(last_layer_index-1, -1, -1):
+                # D(l=k) = D(l=k) + 𝛿(l=k+1) [a(l=k)]T
+                delta_matrix = np.matrix(deltas[k+1])
+                activation_matrix = np.matrix(self.activation[k])
+
+                if not k == last_layer_index-1:
+                    # se não estiver calculando para a ultima camada, desconsidera o bias
+                    delta_matrix = np.delete(delta_matrix, 0, 1).transpose()
+
+                gradients[k] = gradients[k] + (delta_matrix * activation_matrix)
+
+
+            # Guarda os gradientes calculados para a instância atual
+            self.gradients_for_all_instances.append(gradients)
 
             print('Saida predita para o exemplo {0} = {1}'.format(i, y[i]))
             print('Saida esperada para o exemplo {0} = {1}'.format(i, f_theta[i]))
+            print('Gradientes para o exemplo {0} = {1}'.format(i, gradients))
+
             print('J do exemplo {0} = {1}'.format(i, j_i))
 
             # Calcula o erro da rede para cada instância i
             J_vector.append(j_i)
+
+
+        print('')
+        print('Dataset completo processado. Calculando gradientes regularizados...')
+        # Calcula gradientes finais (regularizados) para os pesos de cada camada
+        # Inicializa vetor p
+        p = []
+        for g in range(len(self.neurons_per_layer) - 1):
+            p.append(np.zeros(shape=(self.neurons_per_layer[g+1], self.neurons_per_layer[g]+1)))
+
+        for k in range(last_layer_index-1, -1, -1):
+            # p com a primeira coluna zerada // aplica regularização λ apenas a pesos não bias
+            p[k] = np.multiply(self.reg_factor , self.theta[k])
+
+            # combina gradientes com regularização; divide por #exemplos para calcular gradiente médio
+            regularized_gradients[k] = 0
+
+
 
         # Calcula o erro da rede para todo o conjunto
         J = float(sum(J_vector)/len(training_data))
