@@ -1,2 +1,3 @@
 jsonpickle
 ipdb
+matplotlib
