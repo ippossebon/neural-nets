@@ -1,2 +1,3 @@
-# neural-nets
-Trabalho prático 2 da disciplina de Aprendizado de máquina
+# CMP263_Trab2
+
+Trabalho prático de Redes Neurais da disciplina CMP263.
