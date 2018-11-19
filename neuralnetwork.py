@@ -25,6 +25,8 @@ class NeuralNetwork(object):
 
         self.setTrainingData()
 
+        self.regularized_gradients = []
+
     def initTheta(self):
         for i in range(len(self.neurons_per_layer) - 1):
             # theta é uma lista de matrizes - contém L-1 items
@@ -60,8 +62,8 @@ class NeuralNetwork(object):
 
 
     def setTrainingData(self):
-        ex1 = Instance(attributes=[0.13], classification=[0.9])
-        ex2 = Instance(attributes=[0.42], classification=[0.23])
+        ex1 = Instance(attributes=[0.32, 0.68], classification=[0.75, 0.98])
+        ex2 = Instance(attributes=[0.83, 0.02], classification=[0.75, 0.28])
 
         self.training_data = [ex1, ex2]
         # self.training_data = self.dataset
@@ -99,13 +101,14 @@ class NeuralNetwork(object):
 
             # Calcula delta das camadas ocultas
             for k in range(last_layer_index-1, 0, -1):
+                import ipdb; ipdb.set_trace()
                 #  [θ(l=k)]T 𝛿(l=k+1) .* a(l=k) .* (1-a(l=k))
                 theta_copy = list(self.theta[k])
                 # theta_matrix = np.delete(theta_copy, 0, axis=1) # remove o peso do neurônio de bias
                 theta_matrix = np.matrix(theta_copy)
 
                 theta_transp = theta_matrix.transpose()
-                delta_matrix = np.matrix(deltas[k+1])
+                delta_matrix = np.asmatrix(deltas[k+1]).transpose() # TODO: TIVE QUE FAZER P conjunto 2
                 first_term = theta_transp * delta_matrix
 
                 activation_copy = np.array(self.activation[k])
@@ -119,6 +122,8 @@ class NeuralNetwork(object):
                 # remove o neurônio de bias
                 # delta_k = np.delete(third_term, 0, 0)
                 delta_k = third_term.diagonal() # gambiarra: alguma dimensão ficou errada, mas pega os valores certos
+
+                # TODO: está alterando a forma da matrix de deltas
                 deltas[k] = delta_k
 
 
@@ -153,9 +158,8 @@ class NeuralNetwork(object):
         for g in range(len(self.neurons_per_layer) - 1):
             p_vector.append(np.zeros(shape=(self.neurons_per_layer[g+1], self.neurons_per_layer[g]+1)))
 
-        regularized_gradients = []
         for g in range(len(D_matrix)):
-            regularized_gradients.append(np.zeros(shape=D_matrix[g].shape))
+            self.regularized_gradients.append(np.zeros(shape=D_matrix[g].shape))
 
         for k in range(last_layer_index-1, -1, -1):
             # Seja P(l=k) igual à (λ .* θ(l=k)), mas com a primeira coluna zerada -> aplica regularização λ apenas a pesos não bias
@@ -166,8 +170,8 @@ class NeuralNetwork(object):
 
             # combina gradientes com regularização; divide por #exemplos para calcular gradiente médio
             # D(l=k) = (1/n) (D(l=k) + P(l=k))
-            regularized_gradients[k] = (1/len(self.training_data)) * (D_matrix[k] + p_vector[k])
-            print('Gradientes finais de theta (com regularização) {0} para o exemplo {1} = {2}'.format(k, i, regularized_gradients[k]))
+            self.regularized_gradients[k] = (1/len(self.training_data)) * (D_matrix[k] + p_vector[k])
+            print('Gradientes finais de theta (com regularização) {0} para o exemplo {1} = {2}'.format(k, i, self.regularized_gradients[k]))
 
 
         # Atualiza pesos de cada camada com base nos gradientes
@@ -238,3 +242,11 @@ class NeuralNetwork(object):
         J = first_term - second_term
 
         return J
+
+    def verify(self):
+        print('')
+        print('Rodando verificacao numerica de gradientes (epsilon=0.0000010000)')
+
+        for i in range(len(self.regularized_gradients)):
+            print('Gradiente numérico de theta ', i)
+            print(self.regularized_gradients[i])
