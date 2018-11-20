@@ -4,6 +4,7 @@ import math
 import statistics
 import jsonpickle
 import pprint
+import numpy as np
 
 # import matplotlib.pyplot as plt
 from utils import FileUtils
@@ -23,7 +24,7 @@ def main():
     fileUtils = FileUtils(dataset_file=dataset_file, config_file=config_file)
     dataset = fileUtils.getDataset()
 
-    #normalized_dataset = normalizeDataset(dataset)
+    normalized_dataset = normalizeDataset(dataset)
 
     # neurons_per_layer = [1, 2, 1]
     neurons_per_layer = [2, 4, 3, 2]
@@ -87,19 +88,17 @@ def normalizeDataset(dataset):
             dataset_line[j] = (dataset_line[j] - min_value)/(max_value - min_value)
 
 
-    for i in range(len(dataset)):
-        dataset_line = dataset[i].attributes
-
-        # calcula novo valor normalizado para cada parametro
-        for j in range(len(dataset_line)):
-            #print(len(dataset_line))
-            ex1 = Instance(attributes=dataset_line[j], classification=dataset[i].classification)
-            #print(self.dataset[i].classification)
-            training_data.append(ex1)
-
-    #print(training_data)
-
-
+    # for i in range(len(dataset)):
+    #     dataset_line = dataset[i].attributes
+    #
+    #     # calcula novo valor normalizado para cada parametro
+    #     for j in range(len(dataset_line)):
+    #         #print(len(dataset_line))
+    #         ex1 = Instance(attributes=dataset_line[j], classification=dataset[i].classification)
+    #         #print(self.dataset[i].classification)
+    #         training_data.append(ex1)
+    #
+    # #print(training_data)
 
 # Cria o conjunto de bootstrap
 def getBootstrap(data_set, size):
@@ -148,11 +147,11 @@ def crossValidation(attributes, attributes_types, target_class, folds, b, k):
 
             network.backpropagation()
 
-            forest.append(network)
+            netgroup.append(network)
 
-        # Usa o ensemble de B arvores para prever as instancias do fold i
+        # Usa o ensemble de B redes neurais para prever as instancias do fold i
         # (fold de teste) e avaliar desempenho do algoritmo
-        true_positives, false_positives, false_negatives, true_negatives = evaluateForest(forest, test_set, target_class)
+        true_positives, false_positives, false_negatives, true_negatives = evaluateNetgroup(netgroup, test_set, target_class)
 
         accuracy_values.append(calculateAccuracy(true_positives, true_negatives, false_positives, false_negatives))
 
@@ -182,6 +181,76 @@ def calculatePrecision(true_positives, false_positives):
 def calculateF1Measure(precision, recall):
     return float((2*precision*recall)/(precision+recall))
 
+def evaluateNetgroup(forest, test_set, target_class):
+    instances_copy = list(test_set)
+
+    class_distinct_values = getClassDistinctValues(target_class, test_set)
+
+    true_positives = 0
+    false_positives = {}
+    true_negatives = {}
+    false_negatives = {}
+
+    for value in class_distinct_values:
+        false_positives[value] = 0
+        true_negatives[value] = 0
+        false_negatives[value] = 0
+
+    predictions = []
+    correct_classes = []
+
+    # Para cada instância do conjunto de validação
+    for instance in instances_copy:
+        correct_class = instance[target_class]
+        correct_classes.append(correct_class)
+
+        predicted_class = netgroupPredict(netgroup, instance)
+
+        predictions.append(predicted_class)
+
+    for i in range(len(predictions)):
+        if predictions[i] == correct_classes[i]:
+            true_positives = true_positives + 1
+        else:
+            for value in class_distinct_values:
+                if correct_classes[i] == value and predictions[i] != value:
+                    # falso negativo
+                    false_negatives[value] = false_negatives[value] + 1
+                elif correct_classes[i] != value and predictions[i] == value:
+                    # falso positivo
+                    false_positives[value] = false_positives[value]  + 1
+                elif correct_classes[i] != value and predictions[i] != value:
+                    # verdadeiro negativo
+                    true_negatives[value] = true_negatives[value] + 1
+
+
+    avg_false_positives = getAverageValue(false_positives)
+    avg_false_negatives = getAverageValue(false_negatives)
+    avg_true_negatives = getAverageValue(true_negatives)
+
+    return true_positives, avg_false_positives, avg_false_negatives, avg_true_negatives
+
+
+def getAverageValue(values_dict):
+    values_list = []
+    classes_count = 0
+
+    for value in values_dict:
+        values_list.append(values_dict[value])
+        classes_count = classes_count + 1
+
+    avg_value = float(sum(values_list) / classes_count)
+    return avg_value
+
+def netgroupPredict(netgroup, instance):
+    predictions = []
+
+    for network in netgroup:
+        predictions.append(network.classify(instance))
+
+    most_frequent_class = max(set(predictions), key=predictions.count)
+
+    return most_frequent_class
 
 if __name__ == '__main__':
     main()
