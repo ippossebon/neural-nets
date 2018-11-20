@@ -62,8 +62,15 @@ class NeuralNetwork(object):
 
 
     def setTrainingData(self):
-        ex1 = Instance(attributes=[0.32, 0.68], classification=[0.75, 0.98])
-        ex2 = Instance(attributes=[0.83, 0.02], classification=[0.75, 0.28])
+        # Exemplo 1
+        ex1 = Instance(attributes=[0.13], classification=[0.9])
+        ex2 = Instance(attributes=[0.42], classification=[0.23])
+
+
+        # Exemplo 2
+        # ex1 = Instance(attributes=[0.32, 0.68], classification=[0.75, 0.98])
+        # ex2 = Instance(attributes=[0.83, 0.02], classification=[0.75, 0.28])
+
 
         self.training_data = [ex1, ex2]
         # self.training_data = self.dataset
@@ -101,7 +108,6 @@ class NeuralNetwork(object):
 
             # Calcula delta das camadas ocultas
             for k in range(last_layer_index-1, 0, -1):
-                import ipdb; ipdb.set_trace()
                 #  [θ(l=k)]T 𝛿(l=k+1) .* a(l=k) .* (1-a(l=k))
                 theta_copy = list(self.theta[k])
                 # theta_matrix = np.delete(theta_copy, 0, axis=1) # remove o peso do neurônio de bias
@@ -119,35 +125,30 @@ class NeuralNetwork(object):
                 aux = 1 - activation_matrix
                 third_term = np.multiply(second_term, aux)
 
-                # remove o neurônio de bias
-                # delta_k = np.delete(third_term, 0, 0)
                 delta_k = third_term.diagonal() # gambiarra: alguma dimensão ficou errada, mas pega os valores certos
 
-                # TODO: está alterando a forma da matrix de deltas
-                deltas[k] = delta_k
+                # remove o neurônio de bias
+                delta_k_without_bias = np.delete(delta_k, 0, 1)
+                deltas[k] = delta_k_without_bias
 
 
-            # Atualiza os gradientes dos pesos com base no exemplo atual
-            # TODO: CALCULAR O DA ULTIMA CAMADA FORA DO FOR
             for k in range(last_layer_index-1, -1, -1):
                 # D(l=k) = D(l=k) + 𝛿(l=k+1) [a(l=k)]T
                 delta_matrix = np.matrix(deltas[k+1])
                 activation_matrix = np.matrix(self.activation[k])
 
-                if not k == last_layer_index-1:
-                    # se não estiver calculando para a ultima camada, desconsidera o bias
-                    delta_matrix = np.delete(delta_matrix, 0, 1).transpose()
-
-                gradients = delta_matrix * activation_matrix
+                gradients = delta_matrix.transpose() * activation_matrix
                 D_matrix[k] = D_matrix[k] + gradients
 
-                print('Gradientes de theta {0} para o exemplo {1} = {2}'.format(k, i, gradients))
+                print('Gradientes de theta {0} para o exemplo {1}'.format(k, i))
+                print(gradients)
 
+
+            # Calcula o custo
+            j_i = self.cost(f_theta[i], y[i])
+            J_vector.append(j_i)
 
             print('J do exemplo {0} = {1}'.format(i, j_i))
-
-            # Calcula o erro da rede para cada instância i
-            J_vector.append(j_i)
 
 
         print('')
@@ -171,7 +172,8 @@ class NeuralNetwork(object):
             # combina gradientes com regularização; divide por #exemplos para calcular gradiente médio
             # D(l=k) = (1/n) (D(l=k) + P(l=k))
             self.regularized_gradients[k] = (1/len(self.training_data)) * (D_matrix[k] + p_vector[k])
-            print('Gradientes finais de theta (com regularização) {0} para o exemplo {1} = {2}'.format(k, i, self.regularized_gradients[k]))
+            print('Gradientes finais de theta (com regularização) {0} para o exemplo {1}'.format(k, i))
+            print(self.regularized_gradients[k])
 
 
         # Atualiza pesos de cada camada com base nos gradientes
@@ -219,22 +221,26 @@ class NeuralNetwork(object):
 
         self.activation[k] = g_vector_function(z[k])
 
-        print('Vetor a = {0}'.format(self.activation))
-        print('Vetor z = {0}'.format(z))
-        print('Vetor de theta = {0}'.format(self.theta))
-        print('Predicao final= {0}'.format(self.activation[k]))
+        print('Vetor a =')
+        print(self.activation)
+        print('Vetor z =')
+        print(z)
+        print('Vetor de theta =')
+        print(self.theta)
+        print('Predicao final =')
+        print(self.activation[k])
 
         # Predição final
         return self.activation[k]
+
 
     def g(self, x):
         return float(1/(1 + math.exp(-x)))
 
 
-    def calculateError(self, f_theta, y):
-        # calcula o erro obtido a partir das saídas obtidas para um exemplo i
-        matrix_f_theta = np.matrix(f_theta)
-        matrix_y = np.matrix(y)
+    def cost(self, f_theta, y):
+        matrix_f_theta = np.asmatrix(f_theta)
+        matrix_y = np.asmatrix(y)
 
         # J(i) = -y(i) .* log(fθ(x(i))) - (1-y(i)) .* log(1 - fθ(x(i)))
         first_term = np.multiply(-matrix_y, np.log(matrix_f_theta))
