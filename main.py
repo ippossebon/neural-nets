@@ -16,8 +16,8 @@ from neuralnetwork import NeuralNetwork
 print_multi_array = pprint.PrettyPrinter(indent=4)
 
 def main():
-    config_file = './data/configs/network.txt'
-    initial_weights_file = './data/configs/initial_weights.txt'
+    config_file = './data/configs/network2.txt'
+    initial_weights_file = './data/configs/initial_weights2.txt'
     dataset_file = './data/datasets/wine.txt'
 
     fileUtils = FileUtils(dataset_file=dataset_file, config_file=config_file)
@@ -25,8 +25,8 @@ def main():
 
     #normalized_dataset = normalizeDataset(dataset)
 
-    neurons_per_layer = [1, 2, 1]
-    # neurons_per_layer = [2, 4, 3, 2]
+    # neurons_per_layer = [1, 2, 1]
+    neurons_per_layer = [2, 4, 3, 2]
     network = NeuralNetwork(
         config_file=config_file,
         dataset=dataset,

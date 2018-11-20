@@ -12,7 +12,7 @@ class NeuralNetwork(object):
         self.dataset = dataset
         self.num_layers = len(neurons_per_layer)
         self.neurons_per_layer = neurons_per_layer
-        self.reg_factor = 0
+        self.reg_factor = 0.25
         self.learning_rate = 0.1
 
         self.training_data = None
@@ -62,14 +62,14 @@ class NeuralNetwork(object):
 
 
     def setTrainingData(self):
-        # Exemplo 1
-        ex1 = Instance(attributes=[0.13], classification=[0.9])
-        ex2 = Instance(attributes=[0.42], classification=[0.23])
+        # # Exemplo 1
+        # ex1 = Instance(attributes=[0.13], classification=[0.9])
+        # ex2 = Instance(attributes=[0.42], classification=[0.23])
 
 
         # Exemplo 2
-        # ex1 = Instance(attributes=[0.32, 0.68], classification=[0.75, 0.98])
-        # ex2 = Instance(attributes=[0.83, 0.02], classification=[0.75, 0.28])
+        ex1 = Instance(attributes=[0.32, 0.68], classification=[0.75, 0.98])
+        ex2 = Instance(attributes=[0.83, 0.02], classification=[0.75, 0.28])
 
 
         self.training_data = [ex1, ex2]
@@ -96,14 +96,14 @@ class NeuralNetwork(object):
 
         for i in range(len(self.training_data)):
             # Propaga a instância e obtém as saídas preditas pela rede
-            f_theta.append(self.training_data[i].classification)
-            y.append(self.forwardPropagation(self.training_data[i]))
+            y.append(self.training_data[i].classification)
+            f_theta.append(self.forwardPropagation(self.training_data[i]))
 
             print('Saida predita para o exemplo {0} = {1}'.format(i, y[i]))
             print('Saida esperada para o exemplo {0} = {1}'.format(i, f_theta[i]))
 
             # Calcula delta da camada de saída
-            j_i = y[i] - f_theta[i]
+            j_i = f_theta[i] - y[i]
             deltas.insert(last_layer_index, j_i)
 
             # Calcula delta das camadas ocultas
@@ -143,13 +143,11 @@ class NeuralNetwork(object):
                 print('Gradientes de theta {0} para o exemplo {1}'.format(k, i))
                 print(gradients)
 
-
             # Calcula o custo
             j_i = self.cost(f_theta[i], y[i])
             J_vector.append(j_i)
 
             print('J do exemplo {0} = {1}'.format(i, j_i))
-
 
         print('')
         print('Dataset completo processado. Calculando gradientes regularizados...')
@@ -181,19 +179,22 @@ class NeuralNetwork(object):
             # θ(l=k) = θ(l=k) - α .* D(l=k)
             self.theta[k] = np.multiply(self.theta[k], self.learning_rate * D_matrix[k])
 
-        # Calcula o erro da rede para todo o conjunto
+
+        # Calcula custo total da rede
         J = float(sum(J_vector)/len(self.training_data))
 
-        # Calcula S = eleva cada peso da rede ao quadrado (exceto os pesos de bias) e os soma
-        s_factor = 0
-        for k in range(last_layer_index-1, -1, -1):
-            s_factor = s_factor + np.sum(np.power(self.theta[k][:, 1:], 2))
+        if self.reg_factor > 0:
+            # Calcula S = eleva cada peso da rede ao quadrado (exceto os pesos de bias) e os soma
+            s_factor = 0
+            for k in range(last_layer_index-1, -1, -1):
+                s_factor = s_factor + np.sum(np.power(self.theta[k][:, 1:], 2))
 
-        s_factor = float((self.reg_factor/(2 * len(self.training_data)))) * s_factor
+            s_factor = float((self.reg_factor/(2 * len(self.training_data)))) * s_factor
 
-        # Calcula o custo regularizado
-        J = J + s_factor
+            # Calcula o custo regularizado
+            J = J + s_factor
 
+        print('J total do dataset = {0}'.format(J))
 
     def forwardPropagation(self, instance):
         print('')
@@ -246,6 +247,7 @@ class NeuralNetwork(object):
         first_term = np.multiply(-matrix_y, np.log(matrix_f_theta))
         second_term = np.multiply((1 - matrix_y), np.log(1 - matrix_f_theta))
         J = first_term - second_term
+        J = np.sum(J)
 
         return J
 
