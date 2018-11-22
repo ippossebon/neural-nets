@@ -14,6 +14,7 @@ class NeuralNetwork(object):
         self.neurons_per_layer = neurons_per_layer
         self.reg_factor = 0.25
         self.learning_rate = 0.1
+        self.epsilon = 0.000001
 
         self.training_data = None
 
@@ -74,6 +75,7 @@ class NeuralNetwork(object):
 
         self.training_data = [ex1, ex2]
         # self.training_data = self.dataset
+
 
     def backpropagation(self):
         delta = []
@@ -174,12 +176,6 @@ class NeuralNetwork(object):
             print(self.regularized_gradients[k])
 
 
-        # Atualiza pesos de cada camada com base nos gradientes
-        for k in range(last_layer_index-1, -1, -1):
-            # θ(l=k) = θ(l=k) - α .* D(l=k)
-            self.theta[k] = np.multiply(self.theta[k], self.learning_rate * D_matrix[k])
-
-
         # Calcula custo total da rede
         J = float(sum(J_vector)/len(self.training_data))
 
@@ -195,6 +191,13 @@ class NeuralNetwork(object):
             J = J + s_factor
 
         print('J total do dataset = {0}'.format(J))
+
+        # Atualiza pesos de cada camada com base nos gradientes
+        for k in range(last_layer_index-1, -1, -1):
+            # θ(l=k) = θ(l=k) - α .* D(l=k)
+            self.theta[k] = np.multiply(self.theta[k], self.learning_rate * D_matrix[k])
+
+        return J
 
     def forwardPropagation(self, instance):
         print('')
@@ -253,8 +256,20 @@ class NeuralNetwork(object):
 
     def verify(self):
         print('')
-        print('Rodando verificacao numerica de gradientes (epsilon=0.0000010000)')
+        print('Rodando verificacao numerica de gradientes (epsilon={0})'.format(self.epsilon))
 
         for i in range(len(self.regularized_gradients)):
             print('Gradiente numérico de theta ', i)
             print(self.regularized_gradients[i])
+
+
+    def runNetwork(self, max_iter):
+        j = 0
+        new_j = 0
+
+        for i in range(max_iter):
+            j = new_j
+            new_j = self.backpropagation()
+
+            if abs(j - new_j) < self.epsilon:
+                return self.theta

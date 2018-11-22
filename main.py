@@ -19,13 +19,13 @@ print_multi_array = pprint.PrettyPrinter(indent=4)
 
 def main():
 
-    config_file = sys.argv[1]
-    initial_weights_file = sys.argv[2]
-    dataset_file = sys.argv[3]
+    # config_file = sys.argv[1]
+    # initial_weights_file = sys.argv[2]
+    # dataset_file = sys.argv[3]
 
-    #config_file = './data/configs/network2.txt'
-    #initial_weights_file = './data/configs/initial_weights2.txt'
-    #dataset_file = './data/datasets/wine.txt'
+    config_file = './data/configs/network2.txt'
+    initial_weights_file = './data/configs/initial_weights2.txt'
+    dataset_file = './data/datasets/wine.txt'
 
     fileUtils = FileUtils(dataset_file=dataset_file, config_file=config_file)
     dataset = fileUtils.getDataset()
@@ -42,6 +42,7 @@ def main():
     )
 
     network.backpropagation()
+    # weights = network.runNetwork(max_iter=250)
 
 
 
