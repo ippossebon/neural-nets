@@ -21,9 +21,6 @@ class NeuralNetwork(object):
         self.theta = []
         self.initTheta()
 
-        self.activation = []
-        self.initActivationsVector()
-
         self.setTrainingData()
 
         self.regularized_gradients = []
@@ -76,7 +73,6 @@ class NeuralNetwork(object):
         self.training_data = [ex1, ex2]
         # self.training_data = self.dataset
 
-
     def backpropagation(self):
         delta = []
         y = []
@@ -99,7 +95,8 @@ class NeuralNetwork(object):
         for i in range(len(self.training_data)):
             # Propaga a instância e obtém as saídas preditas pela rede
             y.append(self.training_data[i].classification)
-            f_theta.append(self.forwardPropagation(self.training_data[i]))
+            f, activation = self.forwardPropagation(self.training_data[i])
+            f_theta.append(f)
 
             print('Saida predita para o exemplo {0} = {1}'.format(i, y[i]))
             print('Saida esperada para o exemplo {0} = {1}'.format(i, f_theta[i]))
@@ -112,15 +109,13 @@ class NeuralNetwork(object):
             for k in range(last_layer_index-1, 0, -1):
                 #  [θ(l=k)]T 𝛿(l=k+1) .* a(l=k) .* (1-a(l=k))
                 theta_copy = list(self.theta[k])
-                # theta_matrix = np.delete(theta_copy, 0, axis=1) # remove o peso do neurônio de bias
                 theta_matrix = np.matrix(theta_copy)
 
                 theta_transp = theta_matrix.transpose()
-                delta_matrix = np.asmatrix(deltas[k+1]).transpose() # TODO: TIVE QUE FAZER P conjunto 2
+                delta_matrix = np.asmatrix(deltas[k+1]).transpose()
                 first_term = theta_transp * delta_matrix
 
-                activation_copy = np.array(self.activation[k])
-                # activation_matrix = np.delete(activation_copy, 0, axis=0) # remove a ativação do neurônio de bias
+                activation_copy = np.array(activation[k])
                 activation_matrix = np.matrix(activation_copy)
                 second_term = np.multiply(first_term, activation_matrix)
 
@@ -137,7 +132,7 @@ class NeuralNetwork(object):
             for k in range(last_layer_index-1, -1, -1):
                 # D(l=k) = D(l=k) + 𝛿(l=k+1) [a(l=k)]T
                 delta_matrix = np.matrix(deltas[k+1])
-                activation_matrix = np.matrix(self.activation[k])
+                activation_matrix = np.matrix(activation[k])
 
                 gradients = delta_matrix.transpose() * activation_matrix
                 D_matrix[k] = D_matrix[k] + gradients
@@ -195,7 +190,7 @@ class NeuralNetwork(object):
         # Atualiza pesos de cada camada com base nos gradientes
         for k in range(last_layer_index-1, -1, -1):
             # θ(l=k) = θ(l=k) - α .* D(l=k)
-            self.theta[k] = np.multiply(self.theta[k], self.learning_rate * D_matrix[k])
+            self.theta[k] = np.asarray(np.multiply(self.theta[k], self.learning_rate * D_matrix[k]))
 
         return J
 
@@ -206,36 +201,43 @@ class NeuralNetwork(object):
 
         print('--> Propagando entrada: {0}'.format(instance.attributes))
 
-        self.activation[0] = bias + instance.attributes
+        activation = []
+        # activation[L][j] = ativação/saída do neurônio j da camada L
+        for i in range(len(self.neurons_per_layer)):
+            # activation é uma lista de arrays Nx1, onde N=número de neurônios da
+            # camada + 1 (bias)
+            activation.append(np.zeros(shape=(self.neurons_per_layer[i]+1, 1)))
+
+        activation[0] = bias + instance.attributes
 
         g_vector_function = np.vectorize(self.g)
 
         # Para cada camada k=2 (iniciando contagem em 1) até k=num_layers-1
         for k in range(1, self.num_layers-1):
             # Ativação dos neurônios da camada k
-            #z[k] = self.theta[k-1] * self.activation[k-1]
-            z[k] = np.dot(self.theta[k-1], self.activation[k-1])
-            a = g_vector_function(z[k])
-            self.activation[k] = np.insert(a, 0, 1, axis=0)
+            z[k] = np.dot(self.theta[k-1], activation[k-1])
+
+            aux = g_vector_function(z[k])
+            activation[k] = np.insert(aux, 0, 1, axis=0)
 
         # Ativação do neurônio da camada de saída
         k = self.num_layers-1
 
-        z[k] = np.dot(self.theta[self.num_layers-2], self.activation[self.num_layers-2])
+        z[k] = np.dot(self.theta[self.num_layers-2], activation[self.num_layers-2])
 
-        self.activation[k] = g_vector_function(z[k])
+        activation[k] = g_vector_function(z[k])
 
         print('Vetor a =')
-        print(self.activation)
+        print(activation)
         print('Vetor z =')
         print(z)
         print('Vetor de theta =')
         print(self.theta)
         print('Predicao final =')
-        print(self.activation[k])
+        print(activation[k])
 
         # Predição final
-        return self.activation[k]
+        return activation[k], activation
 
 
     def g(self, x):
@@ -255,12 +257,21 @@ class NeuralNetwork(object):
         return J
 
     def verify(self):
+        # Compara os valores obtidos pelo backpropagation com as derivadas reais
         print('')
-        print('Rodando verificacao numerica de gradientes (epsilon={0})'.format(self.epsilon))
+        print('Rodando verificacao numerica de gradientes (epsilon=0.0000010000)')
+
+        y = []
+        for i in range(len(self.training_data)):
+            y.append(self.training_data[i].classification)
 
         for i in range(len(self.regularized_gradients)):
             print('Gradiente numérico de theta ', i)
-            print(self.regularized_gradients[i])
+            j1 = self.cost(self.regularized_gradients[i] + self.epsilon, y)
+            j2 = self.cost(self.regularized_gradients[i] - self.epsilon, y)
+
+            numeric_gradient = (j1 - j2)/ (2 * self.epsilon)
+            print(numeric_gradient)
 
 
     def runNetwork(self, max_iter):

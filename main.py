@@ -41,9 +41,12 @@ def main():
         neurons_per_layer=neurons_per_layer
     )
 
-    network.backpropagation()
-    # weights = network.runNetwork(max_iter=250)
+    # network.backpropagation()
+    weights = network.runNetwork(max_iter=250)
 
+    print('')
+    print('Pesos corretos = ')
+    print(weights)
 
 
 def runCrossValidation():
