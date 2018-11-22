@@ -4,6 +4,7 @@ import math
 import statistics
 import jsonpickle
 import pprint
+import sys
 import numpy as np
 
 # import matplotlib.pyplot as plt
@@ -17,14 +18,19 @@ from neuralnetwork import NeuralNetwork
 print_multi_array = pprint.PrettyPrinter(indent=4)
 
 def main():
-    config_file = './data/configs/network2.txt'
-    initial_weights_file = './data/configs/initial_weights2.txt'
-    dataset_file = './data/datasets/wine.txt'
+
+    config_file = sys.argv[1]
+    initial_weights_file = sys.argv[2]
+    dataset_file = sys.argv[3]
+
+    #config_file = './data/configs/network2.txt'
+    #initial_weights_file = './data/configs/initial_weights2.txt'
+    #dataset_file = './data/datasets/wine.txt'
 
     fileUtils = FileUtils(dataset_file=dataset_file, config_file=config_file)
     dataset = fileUtils.getDataset()
 
-    normalized_dataset = normalizeDataset(dataset)
+    #normalized_dataset = normalizeDataset(dataset)
 
     # neurons_per_layer = [1, 2, 1]
     neurons_per_layer = [2, 4, 3, 2]
