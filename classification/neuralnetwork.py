@@ -6,15 +6,13 @@ from utils import FileUtils
 
 class NeuralNetwork(object):
 
-    def __init__(self, initial_weights_file, neurons_per_layer, config_file, dataset):
-        self.initial_weights_file = initial_weights_file
-
+    def __init__(self, neurons_per_layer, dataset):
         self.dataset = dataset
         self.num_layers = len(neurons_per_layer)
         self.neurons_per_layer = neurons_per_layer
         self.reg_factor = 0.25
-        self.learning_rate = 0.1
-        self.epsilon = 0.000001
+        self.learning_rate = 0.3
+        self.epsilon = 0.001
 
         self.training_data = None
 
@@ -32,23 +30,8 @@ class NeuralNetwork(object):
             # de neuronios da camada atual + bias
             self.theta.append(np.zeros(shape=(self.neurons_per_layer[i+1], self.neurons_per_layer[i]+1)))
 
-        with open(self.initial_weights_file) as f:
-            data = f.readlines()
-            layer_index = 0
-
-            for line in data:
-                line = line.strip('\n')
-                weights = line.split(';')
-
-                for neuronI in range(len(weights)):
-                    # i = neurônio i da camada seguinte
-                    i_weights = weights[neuronI].split(',')
-
-                    for neuronJ in range(len(i_weights)):
-                        # neuronJ = neurônio neuronJ da camada atual
-                        self.theta[layer_index][neuronI][neuronJ] = float(i_weights[neuronJ])
-
-                layer_index = layer_index + 1
+        for i in range(len(self.neurons_per_layer) - 1):
+            self.theta[i] = np.random.rand(self.theta[i].shape[0], self.theta[i].shape[1])
 
 
     def initActivationsVector(self):
@@ -60,17 +43,6 @@ class NeuralNetwork(object):
 
 
     def setTrainingData(self):
-        # # Exemplo 1
-        # ex1 = Instance(attributes=[0.13], classification=[0.9])
-        # ex2 = Instance(attributes=[0.42], classification=[0.23])
-
-
-        # Exemplo 2
-        # ex1 = Instance(attributes=[0.32, 0.68], classification=[0.75, 0.98])
-        # ex2 = Instance(attributes=[0.83, 0.02], classification=[0.75, 0.28])
-        #
-        #
-        # self.training_data = [ex1, ex2]
         self.training_data = self.dataset
 
     def backpropagation(self):
@@ -94,12 +66,16 @@ class NeuralNetwork(object):
 
         for i in range(len(self.training_data)):
             # Propaga a instância e obtém as saídas preditas pela rede
-            y.append(self.training_data[i].classification)
-            f, activation = self.forwardPropagation(self.training_data[i])
-            f_theta.append(f)
+            classification = []
+            for key in self.training_data[i].classification:
+                classification.append(self.training_data[i].classification[key])
+            y.append(classification)
 
-            print('Saida predita para o exemplo {0} = {1}'.format(i, y[i]))
-            print('Saida esperada para o exemplo {0} = {1}'.format(i, f_theta[i]))
+            prediction, activation = self.forwardPropagation(self.training_data[i])
+            f_theta.append(prediction)
+
+            # print('Saida esperada para o exemplo {0} = {1}'.format(i, y[i]))
+            # print('Saida predita para o exemplo {0} = {1}'.format(i, f_theta[i]))
 
             # Calcula delta da camada de saída
             j_i = f_theta[i] - y[i]
@@ -137,17 +113,17 @@ class NeuralNetwork(object):
                 gradients = delta_matrix.transpose() * activation_matrix
                 D_matrix[k] = D_matrix[k] + gradients
 
-                print('Gradientes de theta {0} para o exemplo {1}'.format(k, i))
-                print(gradients)
+                # print('Gradientes de theta {0} para o exemplo {1}'.format(k, i))
+                # print(gradients)
 
             # Calcula o custo
             j_i = self.cost(f_theta[i], y[i])
             J_vector.append(j_i)
 
-            print('J do exemplo {0} = {1}'.format(i, j_i))
+            # print('J do exemplo {0} = {1}'.format(i, j_i))
 
-        print('')
-        print('Dataset completo processado. Calculando gradientes regularizados...')
+        # print('')
+        # print('Dataset completo processado. Calculando gradientes regularizados...')
         # Calcula gradientes finais (regularizados) para os pesos de cada camada
         # Inicializa vetor p
         p_vector = []
@@ -167,8 +143,8 @@ class NeuralNetwork(object):
             # combina gradientes com regularização; divide por #exemplos para calcular gradiente médio
             # D(l=k) = (1/n) (D(l=k) + P(l=k))
             self.regularized_gradients[k] = (1/len(self.training_data)) * (D_matrix[k] + p_vector[k])
-            print('Gradientes finais de theta (com regularização) {0} para o exemplo {1}'.format(k, i))
-            print(self.regularized_gradients[k])
+            # print('Gradientes finais de theta (com regularização) {0} para o exemplo {1}'.format(k, i))
+            # print(self.regularized_gradients[k])
 
 
         # Calcula custo total da rede
@@ -185,21 +161,21 @@ class NeuralNetwork(object):
             # Calcula o custo regularizado
             J = J + s_factor
 
-        print('J total do dataset = {0}'.format(J))
+        # print('J total do dataset = {0}'.format(J))
 
         # Atualiza pesos de cada camada com base nos gradientes
         for k in range(last_layer_index-1, -1, -1):
             # θ(l=k) = θ(l=k) - α .* D(l=k)
-            self.theta[k] = np.asarray(np.multiply(self.theta[k], self.learning_rate * D_matrix[k]))
+            self.theta[k] = self.theta[k] - np.asarray(np.multiply(self.theta[k], self.learning_rate * D_matrix[k]))
 
         return J
 
     def forwardPropagation(self, instance):
-        print('')
+        # print('')
         z = [0 for i in range(self.num_layers)]
         bias = [1]
 
-        print('--> Propagando entrada: {0}'.format(instance.attributes))
+        # print('--> Propagando entrada: {0}'.format(instance.attributes))
 
         activation = []
         # activation[L][j] = ativação/saída do neurônio j da camada L
@@ -227,21 +203,27 @@ class NeuralNetwork(object):
 
         activation[k] = g_vector_function(z[k])
 
-        print('Vetor a =')
-        print(activation)
-        print('Vetor z =')
-        print(z)
-        print('Vetor de theta =')
-        print(self.theta)
-        print('Predicao final =')
-        print(activation[k])
+        # print('Vetor a =')
+        # print(activation)
+        # print('Vetor z =')
+        # print(z)
+        # print('Vetor de theta =')
+        # print(self.theta)
+        # print('Predicao final =')
+        # print(activation[k])
 
         # Predição final
         return activation[k], activation
 
 
     def g(self, x):
-        return float(1/(1 + math.exp(-x)))
+        result = 0
+        try:
+            result = float(1/(1 + math.exp(-x)))
+        except OverflowError:
+            result = 2.2250738585072014e-307
+
+        return result
 
 
     def cost(self, f_theta, y):
@@ -259,7 +241,7 @@ class NeuralNetwork(object):
     def verify(self):
         # Compara os valores obtidos pelo backpropagation com as derivadas reais
         print('')
-        print('Rodando verificação numérica de gradientes (epsilon=0.0000010000)')
+        print('Rodando verificação numérica de gradientes (epsilon = {0})'.format(self.epsilon))
 
         y = []
         for i in range(len(self.training_data)):
@@ -283,4 +265,8 @@ class NeuralNetwork(object):
             new_j = self.backpropagation()
 
             if abs(j - new_j) < self.epsilon:
-                return self.theta
+                break
+
+        print('Número de iterações = {0}'.format(i+1))
+        print('J = {0}'.format(new_j))
+        return self.theta

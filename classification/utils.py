@@ -2,7 +2,7 @@ from instance import Instance
 
 class FileUtils(object):
 
-    def __init__(self, dataset_file, config_file):
+    def __init__(self, dataset_file, config_file=None):
         self.dataset_file = dataset_file
         self.config_file = config_file
 

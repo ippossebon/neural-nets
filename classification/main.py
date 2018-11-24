@@ -18,25 +18,45 @@ from neuralnetwork import NeuralNetwork
 print_multi_array = pprint.PrettyPrinter(indent=4)
 
 def main():
-    config_file = './data/configs/network2.txt'
-    initial_weights_file = './data/configs/initial_weights2.txt'
-    dataset_file = './data/datasets/wine.txt'
-
-    fileUtils = FileUtils(dataset_file=dataset_file, config_file=config_file)
+    dataset_file = '../data/datasets/wine.txt'
+    fileUtils = FileUtils(dataset_file=dataset_file)
     dataset = fileUtils.getDataset()
+    normalized_dataset = normalizeDataset(dataset)
 
-    #normalized_dataset = normalizeDataset(dataset)
+    # Verifica a quantidade de classes distintas
+    classes = []
+    for instance in dataset:
+        if instance.classification not in classes:
+            classes.append(instance.classification)
 
-    neurons_per_layer = [2, 4, 3, 2]
+    # Altera o dataset para ter o numero de saidas como o numero de classes possiveis
+    for i in range(len(dataset)):
+        classification = dataset[i].classification
+        classification_dict = {}
+
+        for c in classes:
+            if c == classification:
+                # classificação da instancia
+                classification_dict[c] = 1
+            else:
+                classification_dict[c] = 0
+
+        dataset[i].classification = classification_dict
+
+    # Inicializa rede com o número de atributos de cada instância como número de
+    # neurônios na primeira camada e número de classes possíveis
+    # como quantidade de neurônios da última camada
+    neurons_first_layer = len(dataset[i].attributes)
+    neurons_last_layers = len(classes)
+    neurons_per_layer = [neurons_first_layer, 4, 3, neurons_last_layers]
+
     network = NeuralNetwork(
-        config_file=config_file,
         dataset=dataset,
-        initial_weights_file=initial_weights_file,
         neurons_per_layer=neurons_per_layer
     )
 
     # network.backpropagation()
-    weights = network.runNetwork(max_iter=250)
+    weights = network.runNetwork(max_iter=50)
 
     print('')
     print('Pesos corretos = ')
