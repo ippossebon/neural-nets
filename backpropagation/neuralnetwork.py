@@ -64,14 +64,11 @@ class NeuralNetwork(object):
         # ex1 = Instance(attributes=[0.13], classification=[0.9])
         # ex2 = Instance(attributes=[0.42], classification=[0.23])
 
-
         # Exemplo 2
-        # ex1 = Instance(attributes=[0.32, 0.68], classification=[0.75, 0.98])
-        # ex2 = Instance(attributes=[0.83, 0.02], classification=[0.75, 0.28])
-        #
-        #
-        # self.training_data = [ex1, ex2]
-        self.training_data = self.dataset
+        ex1 = Instance(attributes=[0.32, 0.68], classification=[0.75, 0.98])
+        ex2 = Instance(attributes=[0.83, 0.02], classification=[0.75, 0.28])
+
+        self.training_data = [ex1, ex2]
 
     def backpropagation(self):
         delta = []

@@ -19,9 +19,9 @@ print_multi_array = pprint.PrettyPrinter(indent=4)
 
 def main():
 
-    #config_file = sys.argv[1]
-    #initial_weights_file = sys.argv[2]
-    #dataset_file = sys.argv[3]
+    # config_file = sys.argv[1]
+    # initial_weights_file = sys.argv[2]
+    # dataset_file = sys.argv[3]
 
     config_file = './data/configs/network2.txt'
     initial_weights_file = './data/configs/initial_weights2.txt'
@@ -41,18 +41,19 @@ def main():
         neurons_per_layer=neurons_per_layer
     )
 
-    network.backpropagation()
+    # network.backpropagation()
+    weights = network.runNetwork(max_iter=250)
 
-    runCrossValidation()
+    print('')
+    print('Pesos corretos = ')
+    print(weights)
+
+    print('---- Verifica -----')
+
+    network.verify()
+
 
 def runCrossValidation():
-    config_file = './data/configs/network2.txt'
-    dataset_file = './data/datasets/wine.txt'
-    target_class = 'class'
-
-    fileUtils = FileUtils(dataset_file=dataset_file, config_file=config_file)
-    dataset = fileUtils.getDataset()
-
     results_accuracy = []
     results_precision = []
     results_recall = []
@@ -63,7 +64,7 @@ def runCrossValidation():
     x_axis = [1, 5, 10, 20, 25, 30, 35, 40, 45, 50]
 
     for i in x_axis:
-        folds = getKStratifiedFolds(dataset, target_class, k=k)
+        folds = getKStratifiedFolds(instances, target_class, k=k)
         results = crossValidation(attributes,
                                 attributes_types,
                                 target_class,
@@ -86,6 +87,7 @@ def runCrossValidation():
     plt.title('Results for' + file_name)
     plt.legend()
     plt.show()
+
 
 # Normaliza as features dado o limite [0,1]
 def normalizeDataset(dataset):
@@ -111,45 +113,6 @@ def normalizeDataset(dataset):
     #         training_data.append(ex1)
     #
     # #print(training_data)
-
-def getKStratifiedFolds(data_set, target_class, k):
-    instances_by_class = getClassesSubsets(target_class, data_set)
-    folds = [None] * k
-
-    # Inicializa a lista de folds
-    for i in range(k):
-        folds[i] = []
-
-    for class_value in instances_by_class:
-        # pega K valores deste subset
-        instance_index = 0
-        for instance in instances_by_class[class_value]:
-            fold_index = instance_index % k
-            folds[fold_index].append(instance)
-            instance_index = instance_index + 1
-
-    return folds
-
-def getClassesSubsets(target_class, data):
-    distinct_values = getClassDistinctValues(target_class, data)
-
-    class_subsets = {}
-    for value in distinct_values:
-        for instance in data:
-            if instance[target_class] == value:
-                if value not in class_subsets:
-                    class_subsets[value] = []
-                class_subsets[value].append(instance)
-
-    return class_subsets
-
-def getClassDistinctValues(target_class, data):
-    distinct_values = []
-    for instance in data:
-        if instance[target_class] not in distinct_values:
-            distinct_values.append(instance[target_class])
-
-    return distinct_values
 
 # Cria o conjunto de bootstrap
 def getBootstrap(data_set, size):
