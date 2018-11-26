@@ -15,7 +15,7 @@ initial_weights_file = '../data/configs/initial_weights2.txt'
 dataset_file = '../data/datasets/wine.txt'
 
 
-python main.py ../data/configs/network2.txt ../data/configs/initial_weights2.txt ../data/datasets/wine.txt
+python main.py ../data/configs/network.txt ../data/configs/initial_weights.txt ../data/datasets/wine.txt
 """
 
 def main():
@@ -26,8 +26,8 @@ def main():
     fileUtils = FileUtils(dataset_file=dataset_file, config_file=config_file)
     dataset = fileUtils.getDataset()
 
-    # neurons_per_layer = [1, 2, 1]
-    neurons_per_layer = [2, 4, 3, 2]
+    neurons_per_layer = [1, 2, 1]
+    # neurons_per_layer = [2, 4, 3, 2]
     network = NeuralNetwork(
         config_file=config_file,
         dataset=dataset,
@@ -38,12 +38,11 @@ def main():
     # network.backpropagation()
     weights = network.runNetwork(max_iter=250)
 
-    print('')
-    print('Pesos corretos = ')
+    print('\nPesos corretos = ')
     print(weights)
 
-    # print('---- Verifica -----')
-    # network.verify()
+    print('\n \n \n')
+    network.checkGradient()
 
 
 if __name__ == '__main__':
