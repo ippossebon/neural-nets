@@ -17,11 +17,21 @@ from neuralnetwork import NeuralNetwork
 
 print_multi_array = pprint.PrettyPrinter(indent=4)
 
+# config_file = '../data/configs/network2.txt'
+# initial_weights_file = '../data/configs/initial_weights2.txt'
+# dataset_file = '../data/datasets/ionosphere.txt'
+# fileUtils = FileUtils(dataset_file=dataset_file)
+# dataset = fileUtils.getDataset()
+# target_class = 'class'
+
+network_results = {}
+
 def main():
     dataset_file = '../data/datasets/wine.txt'
     fileUtils = FileUtils(dataset_file=dataset_file)
     dataset = fileUtils.getDataset()
-    normalized_dataset = normalizeDataset(dataset)
+    target_class = 'class'
+    normalizeDataset(dataset)
 
     # Verifica a quantidade de classes distintas
     classes = []
@@ -52,6 +62,7 @@ def main():
 
     network = NeuralNetwork(
         dataset=dataset,
+        reg_factor = 0.25,
         neurons_per_layer=neurons_per_layer
     )
 
@@ -66,23 +77,26 @@ def main():
     #
     # network.verify()
 
-
-def runCrossValidation():
+# ## Executando crossValidation para obter melhor arquitetura de rede para um dataset ##
     results_accuracy = []
     results_precision = []
     results_recall = []
     results_f1measure = []
 
+    neurons_list = []
+    reg_factor_list = []
     k = 10
+    n = 5
+    r = 0.21
     x = range(1,50)
     x_axis = [1, 5, 10, 20, 25, 30, 35, 40, 45, 50]
 
     for i in x_axis:
-        folds = getKStratifiedFolds(instances, target_class, k=k)
-        results = crossValidation(attributes,
-                                attributes_types,
-                                target_class,
+        folds = getKStratifiedFolds(dataset, target_class, k=k)
+        results = crossValidation(target_class,
                                 folds,
+                                neurons=n,
+                                reg_factor=r,
                                 b=1,
                                 k=k)
 
@@ -91,17 +105,37 @@ def runCrossValidation():
         results_recall.append(results[2])
         results_f1measure.append(results[3])
 
-    plt.xticks(np.arange(min(x), max(x)+1, 5.0))
-    plt.plot(x_axis, results_accuracy, label = "Accuracy")
-    plt.plot(x_axis, results_precision, label = "Precision")
-    plt.plot(x_axis, results_recall, label = "Recall")
-    plt.plot(x_axis, results_f1measure, label = "F1-Measure")
-    plt.ylabel('Values')
-    plt.xlabel('Number of trees')
-    plt.title('Results for' + file_name)
-    plt.legend()
-    plt.show()
+    # plt.xticks(np.arange(min(x), max(x)+1, 5.0))
+    # plt.plot(x_axis, results_accuracy, label = "Accuracy")
+    # plt.plot(x_axis, results_precision, label = "Precision")
+    # plt.plot(x_axis, results_recall, label = "Recall")
+    # plt.plot(x_axis, results_f1measure, label = "F1-Measure")
+    # plt.ylabel('Values')
+    # plt.xlabel('Number of neurons/regularization factor')
+    # plt.title('Results for' + file_name)
+    # plt.legend()
+    # plt.show()
 
+    #####################################################################################
+
+    ## Obtem os indices das melhores medidas ##
+
+    best_accuracy = np.max(results_accuracy)
+    best_precision = np.max(results_precision)
+    best_recall = np.max(results_recall)
+    best_f1measure = np.max(results_f1measure)
+
+    accuracy_index = results_accuracy.index(best_accuracy)
+    precision_index = results_precision.index(best_precision)
+    recall_index = results_recall.index(best_recall)
+    f1measure_index = results_f1measure.index(best_f1measure)
+
+    best_neuron_index = accuracy_index
+    best_reg_factor_index = accuracy_index
+
+    # Chamar o crossValidation novamente com os melhores valores
+    # mantendo a arquitetura da rede fixa mas variando o numero
+    # de exemplos
 
 # Normaliza as features dado o limite [0,1]
 def normalizeDataset(dataset):
@@ -115,19 +149,6 @@ def normalizeDataset(dataset):
         for j in range(len(dataset_line)):
             dataset_line[j] = (dataset_line[j] - min_value)/(max_value - min_value)
 
-
-    # for i in range(len(dataset)):
-    #     dataset_line = dataset[i].attributes
-    #
-    #     # calcula novo valor normalizado para cada parametro
-    #     for j in range(len(dataset_line)):
-    #         #print(len(dataset_line))
-    #         ex1 = Instance(attributes=dataset_line[j], classification=dataset[i].classification)
-    #         #print(self.dataset[i].classification)
-    #         training_data.append(ex1)
-    #
-    # #print(training_data)
-
 # Cria o conjunto de bootstrap
 def getBootstrap(data_set, size):
     bootstrap = []
@@ -138,13 +159,8 @@ def getBootstrap(data_set, size):
 
     return bootstrap
 
-
 # Executa a validacao cruzada estratificada
-def crossValidation(attributes, attributes_types, target_class, folds, b, k):
-
-    config_file = './data/configs/network.txt'
-    initial_weights_file = './data/configs/initial_weights.txt'
-    dataset_file = './data/datasets/wine.txt'
+def crossValidation(target_class, folds, neurons, reg_factor, b, k):
 
     accuracy_values = []
     precision_values = []
@@ -160,17 +176,16 @@ def crossValidation(attributes, attributes_types, target_class, folds, b, k):
         bootstrap_size = len(training_set)
 
         test_set = folds[i]
-        forest = []
+        netgroup = []
 
         for j in range(b):
             bootstrap = getBootstrap(training_set, bootstrap_size)
-            neurons_per_layer = [1, 2, 1]
+            neurons_per_layer = [1, neurons, 1]
 
             network = NeuralNetwork(
-                config_file=config_file,
-                dataset_file=dataset_file,
-                initial_weights_file=initial_weights_file,
-                neurons_per_layer=neurons_per_layer
+                dataset_file=bootstrap,
+                neurons_per_layer=neurons_per_layer,
+                reg_factor=reg_factor
             )
 
             network.backpropagation()
@@ -194,6 +209,16 @@ def crossValidation(attributes, attributes_types, target_class, folds, b, k):
     precision = sum(precision_values)/len(precision_values)
     recall = sum(recall_values)/len(recall_values)
     fmeasure = sum(fmeasure_values)/len(fmeasure_values)
+
+    results_list = []
+
+    results_list.append(accuracy)
+    results_list.append(precision)
+    results_list.append(recall)
+    results_list.append(fmeasure)
+
+    # Adiciona resultados no dicionario respectivo a rede
+    network_results[network] = results_list
 
     return accuracy, precision, recall, fmeasure
 
@@ -251,7 +276,6 @@ def evaluateNetgroup(forest, test_set, target_class):
                     # verdadeiro negativo
                     true_negatives[value] = true_negatives[value] + 1
 
-
     avg_false_positives = getAverageValue(false_positives)
     avg_false_negatives = getAverageValue(false_negatives)
     avg_true_negatives = getAverageValue(true_negatives)
@@ -279,6 +303,53 @@ def netgroupPredict(netgroup, instance):
     most_frequent_class = max(set(predictions), key=predictions.count)
 
     return most_frequent_class
+
+def getKStratifiedFolds(data_set, target_class, k):
+    instances_by_class = getClassesSubsets(target_class, data_set)
+    folds = [None] * k
+
+    # Inicializa a lista de folds
+    for i in range(k):
+        folds[i] = []
+
+    for class_value in instances_by_class:
+        # pega K valores deste subset
+        instance_index = 0
+        for instance in instances_by_class[class_value]:
+            fold_index = instance_index % k
+            folds[fold_index].append(instance)
+            instance_index = instance_index + 1
+
+    return folds
+
+def getClassesSubsets(target_class, data):
+    distinct_values = getClassDistinctValues(target_class, data)
+    class_subsets = {}
+    for value in distinct_values:
+        for instance in data:
+            if instance.classification == value:
+                for key in value:
+                    if key not in class_subsets:
+                        class_subsets[key] = []
+                    class_subsets[key].append(instance)
+
+    return class_subsets
+
+def getClassDistinctValues(target_class, data):
+    distinct_values = []
+    for instance in data:
+        if instance.classification not in distinct_values:
+            distinct_values.append(instance.classification)
+
+    return distinct_values
+
+def transformToList(list_of_lists):
+    new_list = []
+    for l in list_of_lists:
+        for value in l:
+            new_list.append(value)
+
+    return new_list
 
 if __name__ == '__main__':
     main()

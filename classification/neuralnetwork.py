@@ -6,12 +6,12 @@ from utils import FileUtils
 
 class NeuralNetwork(object):
 
-    def __init__(self, neurons_per_layer, dataset):
+    def __init__(self, neurons_per_layer, reg_factor, dataset):
         self.dataset = dataset
         self.num_layers = len(neurons_per_layer)
         self.neurons_per_layer = neurons_per_layer
-        self.reg_factor = 0.25
-        self.learning_rate = 0.3
+        self.reg_factor = reg_factor
+        self.learning_rate = 0.005
         self.epsilon = 0.001
 
         self.training_data = None
