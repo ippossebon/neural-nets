@@ -2,7 +2,7 @@ from instance import Instance
 
 class FileUtils(object):
 
-    def __init__(self, dataset_file, config_file):
+    def __init__(self, dataset_file=None, config_file=None):
         self.dataset_file = dataset_file
         self.config_file = config_file
 
@@ -29,8 +29,18 @@ class FileUtils(object):
         return instances
 
     def getConfigParams(self):
-        with open(self.config_file) as f:
-            data = f.readlines()
+        content = []
+        param_list = []
 
-            for line in data:
-                pass
+        with open(self.config_file) as f:
+            content = f.readlines()
+
+        content = [x.strip() for x in content]
+        content_len = len(content)
+
+        param_list.append(float(content[0]))
+
+        for data in range(1, content_len):
+            param_list.append(int(content[data]))
+
+        return param_list

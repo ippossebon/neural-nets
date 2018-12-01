@@ -6,14 +6,14 @@ from utils import FileUtils
 
 class NeuralNetwork(object):
 
-    def __init__(self, initial_weights_file, neurons_per_layer, config_file, dataset):
+    def __init__(self, initial_weights_file, neurons_per_layer, config_file, dataset, reg_factor):
         self.initial_weights_file = initial_weights_file
 
         self.dataset = dataset
         self.num_layers = len(neurons_per_layer)
         self.neurons_per_layer = neurons_per_layer
-        self.reg_factor = 0
-        self.learning_rate = 0.1
+        self.reg_factor = reg_factor
+        self.learning_rate = 0.005
         self.epsilon = 0.000001
 
         self.training_data = None
@@ -68,14 +68,12 @@ class NeuralNetwork(object):
         ex1 = Instance(attributes=[0.13], classification=[0.9])
         ex2 = Instance(attributes=[0.42], classification=[0.23])
 
-
         # Exemplo 2
         # ex1 = Instance(attributes=[0.32, 0.68], classification=[0.75, 0.98])
         # ex2 = Instance(attributes=[0.83, 0.02], classification=[0.75, 0.28])
 
-
-        self.training_data = [ex1, ex2]
-        # self.training_data = self.dataset
+        #self.training_data = [ex1, ex2]
+        self.training_data = self.dataset
 
     def backpropagation(self, should_print=True):
         should_print and print('--------------------------------------------')
@@ -196,10 +194,10 @@ class NeuralNetwork(object):
         # Atualiza pesos de cada camada com base nos gradientes
         for k in range(last_layer_index-1, -1, -1):
             # θ(l=k) = θ(l=k) - α .* D(l=k)
-            self.theta[k] = np.asarray(np.multiply(self.theta[k], self.learning_rate * D_matrix[k]))
+            self.theta[k] = np.multiply(self.theta[k], self.learning_rate * D_matrix[k])
 
         return J
-
+        
     def forwardPropagation(self, instance, should_print=True):
         z = [0 for i in range(self.num_layers)]
         bias = [1]
