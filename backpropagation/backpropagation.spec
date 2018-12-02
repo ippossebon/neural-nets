@@ -4,7 +4,7 @@ block_cipher = None
 
 
 a = Analysis(['backpropagation.py'],
-             pathex=['/home/lalfcosta/Desktop/neural-nets/backpropagation'],
+             pathex=['/Users/isadorapedrinipossebon/Documents/UFRGS/Aprendizado de Máquina/neural-nets/backpropagation'],
              binaries=[],
              datas=[],
              hiddenimports=[],

@@ -10,7 +10,6 @@ from neuralnetwork import NeuralNetwork
 """
 ./backpropagation network.txt initial_weights.txt dataset.txt
 
-python backpropagation.py ../data/configs/network.txt ../data/configs/initial_weights.txt ../data/datasets/wine.txt
 """
 
 def main():
@@ -33,19 +32,13 @@ def main():
 
     reg_factor = config[0]
 
-    # Verifica a quantidade de classes distintas
-    classes = []
-    for instance in dataset:
-        if instance.classification not in classes:
-            classes.append(instance.classification)
-
     # Inicializa rede com o número de atributos de cada instância como número de
     # neurônios na primeira camada e número de classes possíveis
     # como quantidade de neurônios da última camada
-    neurons_first_layer = len(dataset[0].attributes)
-    neurons_last_layers = len(classes)
+    neurons_first_layer = config[1]
+    neurons_last_layer = config[len(config)-1]
 
-    neurons_per_layer = [neurons_first_layer, neurons_last_layers]
+    neurons_per_layer = [neurons_first_layer, neurons_last_layer]
 
     index = 1
 
@@ -58,7 +51,7 @@ def main():
 
     neurons_per_layer_without_bias = list(neurons_per_layer)
     for i in range(len(neurons_per_layer)):
-        if i == 0:
+        if i == len(neurons_per_layer)-1:
             neurons_per_layer_without_bias[i] = neurons_per_layer[i]
         else:
             neurons_per_layer_without_bias[i] = neurons_per_layer[i] - 1
