@@ -23,7 +23,13 @@ class FileUtils(object):
                     attributes_list.append(float(att))
 
                 instance_class = info[1]
-                inst = Instance(attributes=attributes_list, classification=instance_class)
+                output = instance_class.split(',')
+                output_list = []
+                for item in output:
+                    output_list.append(float(item))
+
+                inst = Instance(attributes=attributes_list, classification=output_list)
+
                 instances.append(inst)
 
         return instances
